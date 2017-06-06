@@ -1,1 +1,1 @@
-:)
+sampleGraphix/sampleGraphix_1/bin/data/3d_models/faceModel.mtl and sampleGraphix/sampleGraphix_1/bin/data/3d_models/faceModel.obj created by https://www.blendswap.com/user/danikreuter
