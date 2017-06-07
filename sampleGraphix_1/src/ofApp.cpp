@@ -43,16 +43,18 @@ void ofApp::setup(){
     currentModeStr = "1 - PARTICLE_MODE_ATTRACT: attracts to mouse";
     resetParticles();
     
+    drawParticles = false;
     isAttractPointMoving = true;
-    changeOnce = false;
+    changeParticleModeOnce = false;
     attractPointPos.set(center.x/2,height/2);
     attractPointSpeed = 10;
     timePerAttractionPhase = 20;
-    timeToChangeParticles = 5;
+    changeParticles = 5;
     changeParticleOnce = false;
     randomParticle = 0;
-    timeToDrawLogo = false;
-    counter = 0;
+    drawLogo = false;
+    
+    isRightOn = isLeftOn = false;
 }
 
 //--------------------------------------------------------------
@@ -79,6 +81,9 @@ void ofApp::update(){
     quarterWidth = viewPort.getCenter().x - ((viewPort.getCenter().x - viewPort.getLeft())/2);
     quarterHeight = viewPort.getCenter().y - ((viewPort.getCenter().y - viewPort.getTop())/2);
     center.set(ofGetWidth()/2, ofGetHeight()/2, 0);
+    threeQuarterWidth = center.x + (center.x - quarterWidth);
+    leftCenter.set(quarterWidth, center.y, 0);
+    rightCenter.set(threeQuarterWidth, center.y, 0);
     
     focusColorGlow_angle = focusColorGlow_a(focusColorGlow_angle);
     focusColorGlow_sine = focusColorGlow_s(focusColorGlow_sine, focusColorGlow_angle);
@@ -126,30 +131,18 @@ void ofApp::update(){
         attractPointsWithMovement[i].y = attractPoints[i].y + ofSignedNoise(i * -10, ofGetElapsedTimef() * 0.7) * 12.0;
     }
     
-    if(ofToInt(ofToString(ofGetElapsedTimef()))%timePerAttractionPhase == 0 && !changeOnce){
+    if(ofToInt(ofToString(ofGetElapsedTimef()))%timePerAttractionPhase == 0 && !changeParticleModeOnce){
         isAttractPointMoving = !isAttractPointMoving;
-        changeOnce = true;
+        changeParticleModeOnce = true;
     } else if(ofToInt(ofToString(ofGetElapsedTimef()))%timePerAttractionPhase != 0){
-        changeOnce = false;
+        changeParticleModeOnce = false;
     }
     
     //timer
-    if(ofToInt(ofToString(ofGetElapsedTimef()))%timeToChangeParticles == 0 && !changeParticleOnce){
+    if(ofToInt(ofToString(ofGetElapsedTimef()))%changeParticles == 0 && !changeParticleOnce){
         randomParticle = ofRandom(numParticles);
         changeParticleOnce = true;
-        counter++;
-        if(counter == 3){
-            timeToDrawLogo = true;
-            counter = 0;
-        } else if(timeToDrawLogo){
-            timeToDrawLogo = false;
-        }
-        if(counter == 1){
-            timeToDrawBigNumber = true;
-        } else {
-            timeToDrawBigNumber = false;
-        }
-    } else if(ofToInt(ofToString(ofGetElapsedTimef()))%timeToChangeParticles != 0){
+    } else if(ofToInt(ofToString(ofGetElapsedTimef()))%changeParticles != 0){
         changeParticleOnce = false;
     }
 }
@@ -159,36 +152,44 @@ void ofApp::draw(){
     
     ofBackground(colorScheme[0]);
     
+//    ofSetColor(255,0,0);
+//    ofDrawCircle(leftCenter, 10);
+//    ofDrawCircle(rightCenter, 10);
+    
     ofSetupScreenOrtho(ofGetWidth(), ofGetHeight(), -1000, 1000);
     int margin = 20;
     
     //particles area
-    ofSetColor(colorScheme[1]);
-    ofDrawRectangle(viewPort.getLeft() + margin, viewPort.getTop() + margin, center.z - 10, ((width - viewPort.getLeft())/2) - (margin*2), (height - viewPort.getTop()) - (margin*2));
+    bool showInnerCircle = false;
+    if(drawParticles){
+        ofSetColor(colorScheme[1]);
+        ofDrawRectangle(viewPort.getLeft() + margin, viewPort.getTop() + margin, center.z - 10, ((width - viewPort.getLeft())/2) - (margin*2), (height - viewPort.getTop()) - (margin*2));
     
-    ofSetColor(colorScheme[0]);
-    ofPushMatrix();{
-        if(ofGetFrameNum()%2 == 0){
-            for(unsigned int i = 0; i < p.size(); i++){
-                p[i].draw();
+        ofSetColor(colorScheme[0]);
+        ofPushMatrix();{
+            if(ofGetFrameNum()%2 == 0){
+                for(unsigned int i = 0; i < p.size(); i++){
+                    p[i].draw();
+                }
             }
-        }
-    }ofPopMatrix();
-    
-    if( currentMode == PARTICLE_MODE_NEAREST_POINTS ){
-        for(unsigned int i = 0; i < attractPoints.size(); i++){
-            ofNoFill();
-            ofDrawCircle(attractPointsWithMovement[i], 10);
-            ofFill();
-            ofDrawCircle(attractPointsWithMovement[i], 4);
-        }
+        }ofPopMatrix();
+        ofPushMatrix();{
+            ofEnableDepthTest();{
+                ofTranslate(quarterWidth,center.y,center.z);
+                ofScale(headWarpAmount/2,0.5,0.5);
+                ofRotateY(ofGetElapsedTimef()*100);
+                ofSetColor(colorScheme[1]);
+                head.drawFaces();
+                showInnerCircle = false;
+            }ofDisableDepthTest();
+        }ofPopMatrix();
     }
     
     //logo
     int padding = 20;
     ofRectangle logoBox = ofRectangle(center.x + margin, center.y + margin, (width/2) - (margin*2), (height/2) - (margin*2));
     
-    if(timeToDrawLogo){
+    if(drawLogo){
         fbo.begin();{
             ofSetColor(colorScheme[1]);
             logo.draw(logoBox.getLeft(), logoBox.getCenter().y - (logo.getHeight()/2));
@@ -204,27 +205,25 @@ void ofApp::draw(){
     
     //dataTxt
     ofSetColor(colorScheme[1]);
-    if(!timeToDrawLogo && !timeToDrawBigNumber){
+    
+    if(drawLittleNumbers){
         font.drawString("#" + ofToString(randomParticle) + "\n" + ofToString(p[randomParticle].pos.x) + "\n" + ofToString(p[randomParticle].pos.y), center.x, viewPort.getTop() + txtHeight + padding);
-    } else if(timeToDrawBigNumber){
+    }
+    
+    if(drawBigNumber){
         string charr;
         charr = ofToString(ofGetFrameRate()).substr(ofToString(ofGetFrameRate()).size() - 1,1);
         ofRectangle box = bigFont.getStringBoundingBox(charr, 0, 0);
-        bigFont.drawString(charr, center.x + (center.x - quarterWidth) - (box.width/2), viewPort.getBottom() - margin);
+        bigFont.drawString(charr, threeQuarterWidth - (box.width/2), viewPort.getBottom() - margin);
     }
     
     //head
-    bool showInnerCircle = false;
     ofPushMatrix();{
         ofEnableDepthTest();{
-            if(timeToDrawLogo){
-                ofTranslate(center.x + (center.x - quarterWidth),(quarterHeight) - margin, center.z);
+            if(drawLogo){
+                ofTranslate(threeQuarterWidth,(quarterHeight) - margin, center.z);
                 ofScale(headWarpAmount,1,1);
                 showInnerCircle = true;
-            } else {
-                ofTranslate(quarterWidth,center.y,center.z);
-                ofScale(headWarpAmount/2,0.5,0.5);
-                showInnerCircle = false;
             }
             ofRotateY(ofGetElapsedTimef()*100);
             ofSetColor(colorScheme[1]);
@@ -262,14 +261,59 @@ void ofApp::draw(){
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    if( key == '1'){
-        currentMode = PARTICLE_MODE_ATTRACT;
-        currentModeStr = "1 - PARTICLE_MODE_ATTRACT: attracts to mouse";
+    
+    //press 1-4
+    //if its already on
+    //      set drawThis to false
+    //else
+    //      if nothing empty, nothing happens
+    //      if left empty,
+    //              set drawThis to true
+    //              add to left
+    //      if right empty, add to right
+    
+    //
+    
+    if( key == '1'){ // toggle particles
+        drawParticles = !drawParticles;
+    }
+    if( key == '2'){ // toggle little numbers
+        drawLittleNumbers = !drawLittleNumbers;
+    }
+    if( key == '3'){ // toggle big number
+        drawBigNumber = !drawBigNumber;
+    }
+    if( key == '4'){ // toggle logo&head
+        drawLogo = !drawLogo;
     }
     if( key == ' ' ){
         resetParticles();
     }
+    
+//    if(key == '1'){
+//        if(drawParticles){ // if this is already on
+//            drawParticles = false; // turn it off
+//        } else { //otherwise
+//            if(!isLeftOn || !isRightOn){ //if there's empty space
+//                drawParticles = true; //turn that shit on m9
+//            }
+//        }
+//    }
 }
+
+//in update:
+//if(drawThing){
+//  if(!isLeftOn){
+//      thisCenter == left center
+//  } else { // if right is on
+//      thisCenter == right center
+//  }
+//}
+
+//in draw:
+//if(drawThing){
+//  thing.draw(thisCenter);
+//}
 
 //--------------------------------------------------------------
 
@@ -292,9 +336,6 @@ float ofApp::focusColorGlow_s(float sine, float angle){
 
 //--------------------------------------------------------------
 void ofApp::keyReleased(int key){
-    if(key == '1'){
-        cout << "1 pressed" << endl;
-    }
     
 }
 

@@ -27,8 +27,8 @@ public:
     float focusColorGlow_s(float sine, float angle);
     
     ofRectangle viewPort;
-    float width, height, quarterWidth, quarterHeight;
-    ofVec3f center;
+    float width, height, quarterWidth, quarterHeight, threeQuarterWidth;
+    ofVec3f center, leftCenter, rightCenter;
     
     ofxAssimpModelLoader head;
     float headWarpAmount;
@@ -52,8 +52,10 @@ public:
     vector <ofPoint> attractPointsWithMovement;
     
     int numParticles, randomParticle;;
-    bool isAttractPointMoving, changeOnce, changeParticleOnce, timeToDrawLogo, timeToDrawBigNumber;
+    bool isAttractPointMoving, changeParticleModeOnce, changeParticleOnce, drawLogo, drawBigNumber, drawLittleNumbers, drawParticles;
     ofPoint attractPointPos;
     float attractPointSpeed;
-    int timePerAttractionPhase, timeToChangeParticles, counter;
+    int timePerAttractionPhase, changeParticles;
+    
+    bool isRightOn, isLeftOn;
 };
