@@ -43,7 +43,7 @@ public:
     ofTrueTypeFont font, bigFont;
     float txtHeight;
     ofImage logo;
-    ofShader shader;
+    ofShader shader, shader2;
     ofFbo fbo, fbo2;
     float angle;
     ofPoint littleDataPos;

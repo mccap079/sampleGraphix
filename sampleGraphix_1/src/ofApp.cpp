@@ -35,6 +35,7 @@ void ofApp::setup(){
     logo.resize(450,200);
     
     shader.load("shaders/shaderVert.c", "shaders/shaderFrag.c");
+    shader2.load("shaders/shaderVert2.c", "shaders/shaderFrag2.c");
     fbo.allocate( ofGetWidth(), ofGetHeight() );
     fbo2.allocate( ofGetWidth(), ofGetHeight());
     
@@ -203,24 +204,23 @@ void ofApp::update(){
         fbo.end();
     }
     
-    if(drawLittleNumbers||drawBigNumber){
-        if(ofToInt(ofToString(ofGetElapsedTimef()))%45==0){
-            fbo2.begin();
-            ofClear(255,255,255, 0);
-            fbo2.end();
-            littleDataPos.set(0,0);
-        }
-        if(ofToInt(ofToString(ofGetElapsedTimef()))%10==0){
-            warpLittleData = true;
-        } else {
-            warpLittleData = false;
-        }
-        if(littleDataPos.y >= height){
-            littleDataPos.x += 150;
-            littleDataPos.y = 0;
-        }
-        littleDataPos.y += 10;
+
+    if(ofToInt(ofToString(ofGetElapsedTimef()))%5000==0){
+        fbo2.begin();
+        ofClear(255,255,255, 0);
+        fbo2.end();
+        littleDataPos.set(0,0);
     }
+    if(ofToInt(ofToString(ofGetElapsedTimef()))%10==0){
+        warpLittleData = true;
+    } else {
+        warpLittleData = false;
+    }
+    if(littleDataPos.y >= height*1.5){
+        littleDataPos.x += 150;
+        littleDataPos.y = 0;
+    }
+    littleDataPos.y += 10;
 }
 
 //--------------------------------------------------------------
@@ -228,6 +228,19 @@ void ofApp::draw(){
     
     ofBackground(colorScheme[0]);
     ofSetupScreenOrtho(ofGetWidth(), ofGetHeight(), -1000, 1000);
+    
+    //glitch bg
+    fbo2.begin();{
+        ofSetColor(colorScheme[1]);
+        for(int i = 0; i < 4; i++) ofDrawBitmapString(ofToString(ofGetFrameRate()) + "    " + ofToString(ofGetFrameNum()),littleDataPos.x, littleDataPos.y);
+    }fbo2.end();
+    shader2.begin();{
+        float time = ofGetElapsedTimef()/2;
+        shader.setUniform1f( "time", time );
+        fbo2.draw(viewPort.getLeft() + margin, viewPort.getTop() + margin,
+                  viewPort.getWidth() - (margin*2),
+                  viewPort.getHeight() - (margin*2));
+    }shader2.end();
     
     //particles area
     bool showInnerCircle = false;
@@ -292,26 +305,6 @@ void ofApp::draw(){
     
     if(drawLittleNumbers){
         font.drawString("#" + ofToString(randomParticle) + "\n" + ofToString(p[randomParticle].pos.x) + "\n" + ofToString(p[randomParticle].pos.y), littleNumbersPos.x, viewPort.getTop() + txtHeight + padding);
-    }
-    
-    if(drawLittleNumbers||drawBigNumber){
-        fbo2.begin();{
-            ofSetColor(colorScheme[1]);
-            for(int i = 0; i < 4; i++) ofDrawBitmapString(ofToString(ofGetFrameRate()) + "    " + ofToString(ofGetFrameNum()),littleDataPos.x, littleDataPos.y);
-        }fbo2.end();
-        if(warpLittleData){
-            shader.begin();{
-                float time = ofGetElapsedTimef()/2;
-                shader.setUniform1f( "time", time );
-                fbo2.draw(littleNumbersPos.x, viewPort.getTop() + margin,
-                              (viewPort.getWidth()/2) - (margin*2),
-                              viewPort.getHeight());
-            }shader.end();
-        } else {
-            fbo2.draw(littleNumbersPos.x, viewPort.getTop() + margin,
-                  (viewPort.getWidth()/2) - (margin*2),
-                  viewPort.getHeight());
-        }
     }
     
     if(drawBigNumber){
