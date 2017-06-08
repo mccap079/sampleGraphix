@@ -29,6 +29,9 @@ public:
     ofRectangle viewPort;
     float width, height, quarterWidth, quarterHeight, threeQuarterWidth;
     ofVec3f center, leftCenter, rightCenter;
+    int margin;
+    ofPoint particlesPos, littleNumbersPos, bigNumberPos, logoPos;
+    vector <bool> switchOnce;
     
     ofxAssimpModelLoader head;
     float headWarpAmount;
@@ -45,8 +48,6 @@ public:
     float angle;
     
     //particles
-    particleMode currentMode;
-    string currentModeStr;
     vector <Particle> p;
     vector <ofPoint> attractPoints;
     vector <ofPoint> attractPointsWithMovement;

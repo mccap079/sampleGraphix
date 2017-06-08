@@ -2,7 +2,6 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-    //    ofSetFullscreen(true);
     ofSetWindowShape(ofGetScreenWidth(),ofGetScreenHeight());
     ofSetFrameRate(30);
     ofEnableAlphaBlending();
@@ -11,6 +10,8 @@ void ofApp::setup(){
     ofSetVerticalSync(true);
     
     viewPort.set((ofGetWidth()/2) - (1024/2), (ofGetHeight()/2) - (768/2) - 30, 1024, 768);
+    
+    margin = 20;
     
     head.loadModel("3d_models/FaceModel.obj");
     head.setScale(0.4, 0.4, 0.4);
@@ -37,11 +38,10 @@ void ofApp::setup(){
     fbo.allocate( ofGetWidth(), ofGetHeight() );
     
     //particles
-    numParticles = 15000;
+    numParticles = 20000;
     p.assign(numParticles, Particle());
-    currentMode = PARTICLE_MODE_ATTRACT;
-    currentModeStr = "1 - PARTICLE_MODE_ATTRACT: attracts to mouse";
     resetParticles();
+    particlesPos.set(0,0,0);
     
     drawParticles = false;
     isAttractPointMoving = true;
@@ -55,11 +55,17 @@ void ofApp::setup(){
     drawLogo = false;
     
     isRightOn = isLeftOn = false;
+    littleNumbersPos.set(0,0,0);
+    bigNumberPos.set(0,0,0);
+    logoPos.set(0,0,0);
+    switchOnce.resize(4);
+    for(int i = 0; i < switchOnce.size();i++){
+        switchOnce[i] = false;
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::resetParticles(){
-    
     attractPoints.clear();
     for(int i = 0; i < 4; i++){
         attractPoints.push_back( ofPoint( ofMap(i, 0, 4, 100, ofGetWidth()-100) , ofRandom(100, ofGetHeight()-100) ) );
@@ -68,7 +74,6 @@ void ofApp::resetParticles(){
     attractPointsWithMovement = attractPoints;
     
     for(unsigned int i = 0; i < p.size(); i++){
-        p[i].setMode(currentMode);
         p[i].setAttractPoints(&attractPointsWithMovement);;
         p[i].reset(viewPort);
     }
@@ -122,7 +127,6 @@ void ofApp::update(){
     }
     
     for(unsigned int i = 0; i < p.size(); i++){
-        p[i].setMode(currentMode);
         p[i].update(attractPointPos);
     }
     
@@ -145,54 +149,114 @@ void ofApp::update(){
     } else if(ofToInt(ofToString(ofGetElapsedTimef()))%changeParticles != 0){
         changeParticleOnce = false;
     }
+    
+    if(drawParticles && !switchOnce[0]){
+        //this needs to happen once
+        if(!isLeftOn){
+            particlesPos = leftCenter;
+            isLeftOn = true;
+        } else { // if !isRightOn
+            particlesPos = rightCenter;
+            isRightOn = true;
+        }
+        switchOnce[0] = true;
+    }
+    
+    if(drawLittleNumbers && !switchOnce[1]){
+        //this needs to happen once
+        if(!isLeftOn){
+            littleNumbersPos.set(viewPort.getLeft() + margin,0,0);
+            isLeftOn = true;
+        } else { // if !isRightOn
+            littleNumbersPos.set(center.x,0,0);
+            isRightOn = true;
+        }
+         switchOnce[1] = true;
+    }
+    
+    if(drawBigNumber && !switchOnce[2]){
+        if(!isLeftOn){
+            bigNumberPos.set(quarterWidth,0,0);
+            isLeftOn = true;
+        } else {
+            bigNumberPos.set(threeQuarterWidth,0,0);
+            isRightOn = true;
+        }
+        switchOnce[2] = true;
+    }
+    
+    if(drawLogo && !switchOnce[3]){
+        if(!isLeftOn){
+            logoPos.set(quarterWidth,0,0);
+            isLeftOn = true;
+        } else {
+            logoPos.set(threeQuarterWidth,0,0);
+            isRightOn = true;
+        }
+        switchOnce[3] = true;
+        
+        fbo.begin();
+        ofClear(255,255,255, 0);
+        fbo.end();
+    }
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
     
     ofBackground(colorScheme[0]);
-    
-//    ofSetColor(255,0,0);
-//    ofDrawCircle(leftCenter, 10);
-//    ofDrawCircle(rightCenter, 10);
-    
     ofSetupScreenOrtho(ofGetWidth(), ofGetHeight(), -1000, 1000);
-    int margin = 20;
     
     //particles area
     bool showInnerCircle = false;
     if(drawParticles){
         ofSetColor(colorScheme[1]);
-        ofDrawRectangle(viewPort.getLeft() + margin, viewPort.getTop() + margin, center.z - 10, ((width - viewPort.getLeft())/2) - (margin*2), (height - viewPort.getTop()) - (margin*2));
+        ofPushMatrix();{
+            if(particlesPos == rightCenter){
+            ofTranslate((threeQuarterWidth - quarterWidth), 0);
+            }
+            ofDrawRectangle(viewPort.getLeft() + margin, viewPort.getTop() + margin, center.z - 10, ((width - viewPort.getLeft())/2) - (margin*2), (height - viewPort.getTop()) - (margin*2));
+        }ofPopMatrix();
     
         ofSetColor(colorScheme[0]);
         ofPushMatrix();{
+            if(particlesPos == rightCenter){ //if we're on the right
+                ofTranslate((threeQuarterWidth - quarterWidth), 0);
+            }
             if(ofGetFrameNum()%2 == 0){
                 for(unsigned int i = 0; i < p.size(); i++){
                     p[i].draw();
                 }
             }
         }ofPopMatrix();
-        ofPushMatrix();{
-            ofEnableDepthTest();{
-                ofTranslate(quarterWidth,center.y,center.z);
-                ofScale(headWarpAmount/2,0.5,0.5);
-                ofRotateY(ofGetElapsedTimef()*100);
-                ofSetColor(colorScheme[1]);
-                head.drawFaces();
-                showInnerCircle = false;
-            }ofDisableDepthTest();
-        }ofPopMatrix();
+        if(!drawLogo){
+            ofPushMatrix();{
+                ofEnableDepthTest();{
+                    if(particlesPos == rightCenter){
+                        ofTranslate(threeQuarterWidth,center.y,center.z);
+                    } else {
+                        ofTranslate(quarterWidth,center.y,center.z);
+                    }
+                    ofScale(headWarpAmount/2,0.5,0.5);
+                    ofRotateY(ofGetElapsedTimef()*100);
+                    ofSetColor(colorScheme[1]);
+                    head.drawFaces();
+                    showInnerCircle = false;
+                }ofDisableDepthTest();
+            }ofPopMatrix();
+        }
     }
     
     //logo
     int padding = 20;
-    ofRectangle logoBox = ofRectangle(center.x + margin, center.y + margin, (width/2) - (margin*2), (height/2) - (margin*2));
+    ofRectangle logoBox = ofRectangle(logoPos.x - (logo.getWidth()/2), center.y + margin, (width/2) - (margin*2), (height/2) - (margin*2));
     
     if(drawLogo){
         fbo.begin();{
             ofSetColor(colorScheme[1]);
             logo.draw(logoBox.getLeft(), logoBox.getCenter().y - (logo.getHeight()/2));
+            ofSetColor(255,0,0);
+            ofDrawBitmapString("logoBox.getLeft() = " + ofToString(logoBox.getLeft()), mouseX, mouseY + 60);
         }fbo.end();
         shader.begin();{
             float time = ofGetElapsedTimef()/2;
@@ -207,21 +271,21 @@ void ofApp::draw(){
     ofSetColor(colorScheme[1]);
     
     if(drawLittleNumbers){
-        font.drawString("#" + ofToString(randomParticle) + "\n" + ofToString(p[randomParticle].pos.x) + "\n" + ofToString(p[randomParticle].pos.y), center.x, viewPort.getTop() + txtHeight + padding);
+        font.drawString("#" + ofToString(randomParticle) + "\n" + ofToString(p[randomParticle].pos.x) + "\n" + ofToString(p[randomParticle].pos.y), littleNumbersPos.x, viewPort.getTop() + txtHeight + padding);
     }
     
     if(drawBigNumber){
         string charr;
         charr = ofToString(ofGetFrameRate()).substr(ofToString(ofGetFrameRate()).size() - 1,1);
         ofRectangle box = bigFont.getStringBoundingBox(charr, 0, 0);
-        bigFont.drawString(charr, threeQuarterWidth - (box.width/2), viewPort.getBottom() - margin);
+        bigFont.drawString(charr, bigNumberPos.x - (box.width/2), viewPort.getBottom() - margin);
     }
     
     //head
     ofPushMatrix();{
         ofEnableDepthTest();{
             if(drawLogo){
-                ofTranslate(threeQuarterWidth,(quarterHeight) - margin, center.z);
+                ofTranslate(logoPos.x,(quarterHeight) - margin, center.z);
                 ofScale(headWarpAmount,1,1);
                 showInnerCircle = true;
             }
@@ -255,65 +319,83 @@ void ofApp::draw(){
     }ofEndShape(true);
     
     //debug info
-    ofSetColor(255,200,0);
-    ofDrawBitmapString(ofGetFrameRate(), ofGetMouseX() + 10, ofGetMouseY());
+//    ofSetColor(255,0,0);
+//    ofDrawCircle(leftCenter, 10);
+//    ofDrawCircle(rightCenter, 10);
+//    ofDrawBitmapString(ofGetFrameRate(), ofGetMouseX() + 10, ofGetMouseY());
+//    ofDrawBitmapString("isLeftOn = " + ofToString(isLeftOn), ofGetMouseX() + 10, ofGetMouseY() + 10);
+//    ofDrawBitmapString("isRightOn = " + ofToString(isRightOn), ofGetMouseX() + 10, ofGetMouseY() + 20);
+    
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-    
-    //press 1-4
-    //if its already on
-    //      set drawThis to false
-    //else
-    //      if nothing empty, nothing happens
-    //      if left empty,
-    //              set drawThis to true
-    //              add to left
-    //      if right empty, add to right
-    
-    //
-    
-    if( key == '1'){ // toggle particles
-        drawParticles = !drawParticles;
-    }
-    if( key == '2'){ // toggle little numbers
-        drawLittleNumbers = !drawLittleNumbers;
-    }
-    if( key == '3'){ // toggle big number
-        drawBigNumber = !drawBigNumber;
-    }
-    if( key == '4'){ // toggle logo&head
-        drawLogo = !drawLogo;
-    }
     if( key == ' ' ){
         resetParticles();
     }
     
-//    if(key == '1'){
-//        if(drawParticles){ // if this is already on
-//            drawParticles = false; // turn it off
-//        } else { //otherwise
-//            if(!isLeftOn || !isRightOn){ //if there's empty space
-//                drawParticles = true; //turn that shit on m9
-//            }
-//        }
-//    }
+    if(key == '1'){
+        if(drawParticles){ // if this is already on
+            drawParticles = false; // turn it off
+            if(particlesPos == leftCenter){ //if it was on the left side
+                isLeftOn = false; //turn the left switch back off
+            } else {
+                isRightOn = false; //otherwise it was on th right so turn the right switch back off
+            }
+        } else { // otherwise
+            if(!isLeftOn || !isRightOn){ // if there's empty space
+                drawParticles = true; // turn it on
+            }
+        }
+        switchOnce[0] = false;
+    }
+    if(key == '2'){
+        if(drawLittleNumbers){ // if this is already on
+            drawLittleNumbers = false; // turn it off
+            if(littleNumbersPos.x == viewPort.getLeft() + margin){ //if it was on the left side
+                isLeftOn = false; //turn the left switch back off
+            } else {
+                isRightOn = false; //otherwise it was on th right so turn the right switch back off
+            }
+        } else { // otherwise
+            if(!isLeftOn || !isRightOn){ // if there's empty space
+                drawLittleNumbers = true; // turn it on
+            }
+        }
+         switchOnce[1] = false;
+    }
+    if(key == '3'){
+        if(drawLogo){ // if this is already on
+            drawLogo = false; // turn it off
+            if(logoPos.x == quarterWidth){ //if it was on the left side
+                isLeftOn = false; //turn the left switch back off
+            } else {
+                isRightOn = false; //otherwise it was on th right so turn the right switch back off
+            }
+        } else { // otherwise
+            if(!isLeftOn || !isRightOn){ // if there's empty space
+                drawLogo = true; // turn it on
+            }
+        }
+        switchOnce[3] = false;
+    }
+    if(key == '4'){
+        if(drawBigNumber){ // if this is already on
+            drawBigNumber = false; // turn it off
+            if(bigNumberPos.x == quarterWidth){ //if it was on the left side
+                isLeftOn = false; //turn the left switch back off
+            } else {
+                isRightOn = false; //otherwise it was on th right so turn the right switch back off
+            }
+        } else { // otherwise
+            if(!isLeftOn || !isRightOn){ // if there's empty space
+                drawBigNumber = true; // turn it on
+            }
+        }
+        switchOnce[2] = false;
+    }
+    
 }
-
-//in update:
-//if(drawThing){
-//  if(!isLeftOn){
-//      thisCenter == left center
-//  } else { // if right is on
-//      thisCenter == right center
-//  }
-//}
-
-//in draw:
-//if(drawThing){
-//  thing.draw(thisCenter);
-//}
 
 //--------------------------------------------------------------
 

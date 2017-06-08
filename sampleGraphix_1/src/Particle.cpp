@@ -13,11 +13,6 @@ Particle::Particle(){
 }
 
 //------------------------------------------------------------------
-void Particle::setMode(particleMode newMode){
-    mode = newMode;
-}
-
-//------------------------------------------------------------------
 void Particle::setAttractPoints( vector <ofPoint> * attract ){
     attractPoints = attract;
 }
@@ -41,16 +36,13 @@ void Particle::reset(ofRectangle _viewPort){
 //------------------------------------------------------------------
 void Particle::update(ofPoint attractPointPos){
     
-    if( mode == PARTICLE_MODE_ATTRACT ){
-        
-        ofPoint attractPt = attractPointPos;
-        frc = attractPt-pos; // we get the attraction force/vector by looking at the mouse pos relative to our pos
-        frc.normalize(); //by normalizing we disregard how close the particle is to the attraction point
-        
-        vel *= drag; //apply drag
-        vel += frc * 0.6; //apply force // originally 0.6
-    }
+    ofPoint attractPt = attractPointPos;
+    frc = attractPt-pos; // we get the attraction force/vector by looking at the mouse pos relative to our pos
+    frc.normalize(); //by normalizing we disregard how close the particle is to the attraction point
     
+    vel *= drag; //apply drag
+    vel += frc * 0.6; //apply force // originally 0.6
+
     pos += vel;
     
     if( pos.x > ofGetWidth()*2){
@@ -73,6 +65,5 @@ void Particle::update(ofPoint attractPointPos){
 
 //------------------------------------------------------------------
 void Particle::draw(){
-    
     ofDrawCircle(pos.x, pos.y, scale);
 }
