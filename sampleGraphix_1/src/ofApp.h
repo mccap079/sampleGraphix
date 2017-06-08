@@ -44,8 +44,10 @@ public:
     float txtHeight;
     ofImage logo;
     ofShader shader;
-    ofFbo fbo;
+    ofFbo fbo, fbo2;
     float angle;
+    ofPoint littleDataPos;
+    bool warpLittleData;
     
     //particles
     vector <Particle> p;

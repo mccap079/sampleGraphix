@@ -36,6 +36,9 @@ void ofApp::setup(){
     
     shader.load("shaders/shaderVert.c", "shaders/shaderFrag.c");
     fbo.allocate( ofGetWidth(), ofGetHeight() );
+    fbo2.allocate( ofGetWidth(), ofGetHeight());
+    
+    littleDataPos.set(0,0);
     
     //particles
     numParticles = 20000;
@@ -199,6 +202,25 @@ void ofApp::update(){
         ofClear(255,255,255, 0);
         fbo.end();
     }
+    
+    if(drawLittleNumbers||drawBigNumber){
+        if(ofToInt(ofToString(ofGetElapsedTimef()))%45==0){
+            fbo2.begin();
+            ofClear(255,255,255, 0);
+            fbo2.end();
+            littleDataPos.set(0,0);
+        }
+        if(ofToInt(ofToString(ofGetElapsedTimef()))%10==0){
+            warpLittleData = true;
+        } else {
+            warpLittleData = false;
+        }
+        if(littleDataPos.y >= height){
+            littleDataPos.x += 150;
+            littleDataPos.y = 0;
+        }
+        littleDataPos.y += 10;
+    }
 }
 
 //--------------------------------------------------------------
@@ -255,8 +277,6 @@ void ofApp::draw(){
         fbo.begin();{
             ofSetColor(colorScheme[1]);
             logo.draw(logoBox.getLeft(), logoBox.getCenter().y - (logo.getHeight()/2));
-            ofSetColor(255,0,0);
-            ofDrawBitmapString("logoBox.getLeft() = " + ofToString(logoBox.getLeft()), mouseX, mouseY + 60);
         }fbo.end();
         shader.begin();{
             float time = ofGetElapsedTimef()/2;
@@ -274,6 +294,26 @@ void ofApp::draw(){
         font.drawString("#" + ofToString(randomParticle) + "\n" + ofToString(p[randomParticle].pos.x) + "\n" + ofToString(p[randomParticle].pos.y), littleNumbersPos.x, viewPort.getTop() + txtHeight + padding);
     }
     
+    if(drawLittleNumbers||drawBigNumber){
+        fbo2.begin();{
+            ofSetColor(colorScheme[1]);
+            for(int i = 0; i < 4; i++) ofDrawBitmapString(ofToString(ofGetFrameRate()) + "    " + ofToString(ofGetFrameNum()),littleDataPos.x, littleDataPos.y);
+        }fbo2.end();
+        if(warpLittleData){
+            shader.begin();{
+                float time = ofGetElapsedTimef()/2;
+                shader.setUniform1f( "time", time );
+                fbo2.draw(littleNumbersPos.x, viewPort.getTop() + margin,
+                              (viewPort.getWidth()/2) - (margin*2),
+                              viewPort.getHeight());
+            }shader.end();
+        } else {
+            fbo2.draw(littleNumbersPos.x, viewPort.getTop() + margin,
+                  (viewPort.getWidth()/2) - (margin*2),
+                  viewPort.getHeight());
+        }
+    }
+    
     if(drawBigNumber){
         string charr;
         charr = ofToString(ofGetFrameRate()).substr(ofToString(ofGetFrameRate()).size() - 1,1);
@@ -288,10 +328,11 @@ void ofApp::draw(){
                 ofTranslate(logoPos.x,(quarterHeight) - margin, center.z);
                 ofScale(headWarpAmount,1,1);
                 showInnerCircle = true;
-            }
+            
             ofRotateY(ofGetElapsedTimef()*100);
             ofSetColor(colorScheme[1]);
             head.drawFaces();
+            }
         }ofDisableDepthTest();
         ofNoFill();
         ofSetColor(colorScheme[0]);
