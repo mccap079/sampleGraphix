@@ -1,0 +1,10 @@
+ofxAssimpModelLoader
+ofxKinect
+ofxNetwork
+ofxOpenCv
+ofxOsc
+ofxSSL
+ofxTileSaver
+ofxTween
+ofxUI
+ofxXmlSettings
